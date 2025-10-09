@@ -724,9 +724,9 @@ const OJB_removeHTMLTags = function (text) {
  * @param {string} text - 包含 &lt;、&gt; 的字符串
  * @returns {string} - 解码后的字符串
  */
-const OJB_unescapeHtml = (function() {
+const OJB_unescapeHtml = (function () {
   const textarea = document.createElement("textarea");
-  return function(text) {
+  return function (text) {
     textarea.innerHTML = text;
     return textarea.value;
   };
@@ -2161,7 +2161,7 @@ async function beautifyPreBlocksWithMonaco() {
     // 创建一个用于 Monaco 编辑器的容器
     const container = $("<div></div>");
     const lineCount = code.split("\n").length; // 代码的行数
-    
+
     // 计算容器的高度
     const calculateContainerHeight = (lineCount) => {
       const lineHeight = 20; // 每行代码的高度
@@ -8757,11 +8757,11 @@ async function addButtonWithHTML2MD(button, element, suffix, type) {
       if (checkViewmd()) {
         setViewmd(false);
         target.last().next(".mdViewContent").remove();
-        if(!OJBetter.monaco.beautifyPreBlocks){
+        if (!OJBetter.monaco.beautifyPreBlocks) {
           target.show();
-        }else{
+        } else {
           // 不显示本来被隐藏的代码块
-          target.each(function() {
+          target.each(function () {
             if (!$(this).is("pre")) {
               $(this).show();
             }
@@ -9779,10 +9779,10 @@ class TranslateDiv {
     //         this.renderLaTeX(element);
     //     }
     // });
-    
+
     // 渲染翻译文本颜色
-    if(OJBetter.preference.TranslateTextColor){
-      this.mainDiv.css("color",OJBetter.preference.TranslateTextColor);
+    if (OJBetter.preference.TranslateTextColor) {
+      this.mainDiv.css("color", OJBetter.preference.TranslateTextColor);
     }
   }
 
@@ -11019,6 +11019,38 @@ class ProblemPageLinkbar {
   }
 
   /**
+   * 添加操作按钮
+   * @param {string} id 按钮id
+   * @param {string} text 按钮文字
+   * @param {JQuery<HTMLElement>} icon 按钮图标
+   * @param {string} iconHeight 图标高度
+   * @returns {object} 按钮对象
+   */
+  addActionButton(id, text = "", icon = $("<div>"), iconHeight = "22px") {
+    const buttonElement = $("<button>")
+      .attr("type", "button")
+      .addClass("ojb_btn")
+      .attr("id", id);
+
+    if (icon && icon.length) {
+      buttonElement.append(icon);
+      icon.css("height", iconHeight);
+    }
+
+    const textSpan = $("<span>").html(text);
+    buttonElement.append(textSpan);
+
+    this.commandInvoker.execute(
+      new AddElementCommand(this.containerElement, buttonElement)
+    );
+    return {
+      element: buttonElement,
+      text: textSpan,
+      icon: icon,
+    };
+  }
+
+  /**
    * 更新链接
    * @param {object} button 按钮对象
    * @param {string} url 按钮链接
@@ -11132,7 +11164,7 @@ async function CF2luogu(problemToolbar) {
           method: "GET",
           url,
         });
-        return response.status<300&&!response.responseText.match(/出错了/g);//匹配 1xx 和 2xx
+        return response.status < 300 && !response.responseText.match(/出错了/g);//匹配 1xx 和 2xx
       },
       {
         maxRetries: 3,
@@ -11228,6 +11260,41 @@ async function CF2vjudge(problemToolbar) {
       );
       problemToolbar.disableButton(vjudgeButton);
     }
+  }
+}
+
+/**
+ * 添加题面整体复制按钮
+ * @param {ProblemPageLinkbar} problemToolbar
+ */
+async function addProblemStatementCopyToolbarButton(problemToolbar) {
+  const problemStatement = $(".problem-statement");
+  if (problemStatement.length === 0) return;
+
+  const icon = OJB_safeCreateJQElement('<i class="iconfont">&#xe608;</i>');
+  const copyButton = problemToolbar.addActionButton(
+    "problemMarkdownCopyButton",
+    "",
+    icon,
+    "18px"
+  );
+  problemToolbar.addClass(copyButton, "ojb_btn_popover top problem-toolbar-copy");
+  copyButton.element.attr(
+    "aria-label",
+    i18next.t("copy.normal", { ns: "button" })
+  );
+  copyButton.element.setButtonPopover(
+    i18next.t("copy.normal", { ns: "button" })
+  );
+
+  try {
+    await addButtonWithCopy(copyButton.element, problemStatement, "_toolbar", "this_level");
+  } catch (error) {
+    console.error("Failed to initialize problem toolbar copy button", error);
+    copyButton.element.prop("disabled", true);
+    copyButton.element.setButtonPopover(
+      i18next.t("copy.disabled", { ns: "button" })
+    );
   }
 }
 
@@ -12696,7 +12763,7 @@ async function createMonacoEditor(language, form, support) {
       },
     }
   );
-  
+
   // 在编辑器中添加快捷命令：Ctrl+Enter (或 macOS 下的 Cmd+Enter)
   OJBetter.monaco.editor.addCommand(
     monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
@@ -17114,6 +17181,7 @@ function initOnDOMReady() {
   if (OJBetter.basic.selectElementPerfOpt) SelectElementPerfOpt(); // 下拉选择框性能优化
   if (OJBetter.typeOfPage.is_problem) {
     const problemPageLinkbar = new ProblemPageLinkbar(); // 创建题目页相关链接栏
+    addProblemStatementCopyToolbarButton(problemPageLinkbar);
     if (OJBetter.basic.showCF2vjudge) CF2vjudge(problemPageLinkbar); // 跳转到Vjudge按钮
     if (OJBetter.basic.showJumpToLuogu) CF2luogu(problemPageLinkbar); // 跳转到洛谷按钮
     if (OJBetter.clist.enabled.problem)
