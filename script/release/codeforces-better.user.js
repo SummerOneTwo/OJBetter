@@ -6810,7 +6810,7 @@ const code_editor_settings_HTML = `
             <div class="tip_text" data-i18n="settings:codeEditor.preferences.autoMemoryCode.helpText"></div>
         </div>
         <input type="checkbox" id="autoMemoryCode" name="autoMemoryCode">
-    </div>    
+    </div>
     <div class='OJBetter_setting_list'>
         <label for="submitButtonPosition"><span
                 data-i18n="settings:codeEditor.preferences.submitButtonPosition.label"></span></label>
@@ -8853,6 +8853,105 @@ async function addButtonWithCopy(button, element, suffix, type) {
     !OJBetter.typeOfPage.is_acmsguru
   ) {
     button.addHoverOverlay($(element));
+  }
+}
+
+/**
+ * 构建题面Markdown（排除翻译内容与附加面板）
+ * @param {JQuery<HTMLElement>} problemStatements 题面元素集合
+ * @returns {string} Markdown文本
+ */
+function buildProblemStatementMarkdown(problemStatements) {
+  if (!problemStatements || problemStatements.length === 0) return "";
+
+  const markdownParts = [];
+  const removalSelectors = [
+    ".html2md-panel",
+    ".translateDiv",
+    ".translate-problem-statement-panel",
+    ".translate-problem-statement",
+    ".OJBetter_MiniTranslateButton",
+    ".OJBetter_contextmenu",
+    "[data-topText]",
+    "[data-toptext]",
+    "script",
+    "style",
+  ];
+  const removalSelector = removalSelectors.join(",");
+
+  problemStatements.each((_, statementElement) => {
+    const $statement = $(statementElement);
+    $statement.children().each((__, child) => {
+      const $child = $(child);
+      if ($child.is(removalSelector)) return;
+
+      const markdown = $child.getMarkdown?.() ?? "";
+      if (markdown.trim()) {
+        markdownParts.push(markdown);
+      }
+    });
+  });
+
+  return markdownParts.join("\n\n");
+}
+
+/**
+ * 初始化题面整体复制按钮
+ * @param {JQuery<HTMLElement>} button 按钮
+ * @param {JQuery<HTMLElement>} problemStatements 题面元素
+ */
+async function initProblemStatementCopyButton(button, problemStatements) {
+  /**
+   * 改变按钮状态
+   * @param {string} state 状态
+   */
+  function changeButtonState(state) {
+    if (state == "loading") {
+      button.setButtonLoading();
+      button.setButtonPopover(i18next.t("state.waitMathJax", { ns: "button" }));
+    } else if (state == "loaded") {
+      button.setButtonLoaded();
+      button.setButtonPopover(i18next.t("copy.normal", { ns: "button" }));
+    } else if (state == "normal") {
+      button.setButtonPopover(i18next.t("copy.normal", { ns: "button" }));
+    } else if (state == "copied") {
+      button.setButtonPopover(i18next.t("copy.copied", { ns: "button" }));
+    } else if (state == "disabled") {
+      button.prop("disabled", true);
+      button.setButtonPopover(i18next.t("copy.disabled", { ns: "button" }));
+    }
+  }
+
+  if (OJBetter.typeOfPage.is_oldLatex || OJBetter.typeOfPage.is_acmsguru) {
+    changeButtonState("disabled");
+    return;
+  }
+
+  changeButtonState("loading");
+  await waitForMathJaxIdle();
+  changeButtonState("loaded");
+
+  button.click(
+    OJB_debounce(function () {
+      const markdown = buildProblemStatementMarkdown(problemStatements);
+      GM_setClipboard(OJB_unescapeHtml(markdown));
+
+      $(this).addClass("success");
+      changeButtonState("copied");
+
+      setTimeout(() => {
+        $(this).removeClass("success");
+        changeButtonState("normal");
+      }, 2000);
+    })
+  );
+
+  if (
+    OJBetter.preference.hoverTargetAreaDisplay &&
+    !OJBetter.typeOfPage.is_oldLatex &&
+    !OJBetter.typeOfPage.is_acmsguru
+  ) {
+    button.addHoverOverlay(problemStatements);
   }
 }
 
@@ -11288,7 +11387,10 @@ async function addProblemStatementCopyToolbarButton(problemToolbar) {
   );
 
   try {
-    await addButtonWithCopy(copyButton.element, problemStatement, "_toolbar", "this_level");
+    await initProblemStatementCopyButton(
+      copyButton.element,
+      problemStatement
+    );
   } catch (error) {
     console.error("Failed to initialize problem toolbar copy button", error);
     copyButton.element.prop("disabled", true);
@@ -12803,7 +12905,7 @@ async function createMonacoEditor(language, form, support) {
             <h2>${i18next.t("moreSettings.title", { ns: "codeEditor" })}</h2>
             <div class='OJBetter_setting_list alert_tip'>
                 <p>${i18next.t("moreSettings.tip", { ns: "codeEditor" })}</p>
-            </div>    
+            </div>
         </dialog>`);
     OJB_addDraggable(moreSettingPopover);
     $("body").append(moreSettingPopover);
@@ -12829,8 +12931,8 @@ async function createMonacoEditor(language, form, support) {
       { ns: "codeEditor" }
     )}</div>
             </div>
-            <input type='number' id='fontSizeInput' class='no_default' 
-                require=true 
+            <input type='number' id='fontSizeInput' class='no_default'
+                require=true
                 placeholder="${i18next.t(
       "moreSettings.fontSizeInput.placeholder",
       { ns: "codeEditor" }
@@ -16758,7 +16860,7 @@ async function translate_openai(raw) {
       prompt += `\n${raw}`;
     }
   } else {
-    prompt = `You are a professional English translator specializing in algorithm programming competitions. 
+    prompt = `You are a professional English translator specializing in algorithm programming competitions.
 Translate the following text into ${lang} with precision, using appropriate technical terminology.
 
 Rules:
@@ -16881,7 +16983,7 @@ async function* openai_stream(raw) {
       prompt += `\n${raw}`;
     }
   } else {
-    prompt = `You are a professional English translator specializing in algorithm programming competitions. 
+    prompt = `You are a professional English translator specializing in algorithm programming competitions.
 Translate the following text into ${lang} with precision, using appropriate technical terminology.
 
 Rules:

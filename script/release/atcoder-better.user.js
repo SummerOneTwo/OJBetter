@@ -665,12 +665,12 @@ const OJB_removeHTMLTags = function (text) {
  * @param {string} text - 包含 &lt;、&gt; 的字符串
  * @returns {string} - 解码后的字符串
  */
-const OJB_unescapeHtml = (function () {
-    const textarea = document.createElement("textarea");
-    return function (text) {
-        textarea.innerHTML = text;
-        return textarea.value;
-    };
+const OJB_unescapeHtml = (function() {
+  const textarea = document.createElement("textarea");
+  return function(text) {
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
 })();
 
 /**
@@ -995,7 +995,7 @@ async function initVar() {
     OJBetter.monaco.lsp.socketUrl = OJB_getGMValue("OJBetter_Bridge_SocketUrl", "ws://127.0.0.1:2323/");
     OJBetter.preference.showLoading = OJB_getGMValue("showLoading", true);
     OJBetter.preference.hoverTargetAreaDisplay = OJB_getGMValue("hoverTargetAreaDisplay", false);
-    OJBetter.preference.TranslateTextColor = OJB_getGMValue("TranslateTextColor", "");
+    OJBetter.preference.TranslateTextColor = OJB_getGMValue("TranslateTextColor","");
     OJBetter.preference.showSameContestProblems = OJB_getGMValue("showSameContestProblems", false);
     OJBetter.basic.expandFoldingblocks = OJB_getGMValue("expandFoldingblocks", true);
     OJBetter.preference.iconButtonSize = OJB_getGMValue("iconButtonSize", "16");
@@ -8429,8 +8429,8 @@ class TranslateDiv {
             }
         });
         // 渲染翻译文本颜色
-        if (OJBetter.preference.TranslateTextColor) {
-            this.mainDiv.css("color", OJBetter.preference.TranslateTextColor);
+        if(OJBetter.preference.TranslateTextColor){
+            this.mainDiv.css("color",OJBetter.preference.TranslateTextColor);
         }
     }
 
@@ -9343,36 +9343,6 @@ class ProblemPageLinkbar {
     }
 
     /**
-     * 添加操作按钮
-     * @param {string} id 按钮id
-     * @param {string} text 按钮文字
-     * @param {JQuery<HTMLElement>} icon 按钮图标
-     * @param {string} iconHeight 图标高度
-     * @returns {object} 按钮对象
-     */
-    addActionButton(id, text = "", icon = $('<div>'), iconHeight = "22px") {
-        const buttonElement = $("<button>")
-            .attr("type", "button")
-            .addClass("ojb_btn")
-            .attr("id", id);
-
-        if (icon && icon.length) {
-            buttonElement.append(icon);
-            icon.css("height", iconHeight);
-        }
-
-        const textSpan = $("<span>").html(text);
-        buttonElement.append(textSpan);
-
-        this.commandInvoker.execute(new AddElementCommand(this.containerElement, buttonElement));
-        return {
-            element: buttonElement,
-            text: textSpan,
-            icon: icon
-        };
-    }
-
-    /**
      * 更新链接
      * @param {object} button 按钮对象
      * @param {string} url 按钮链接
@@ -9470,7 +9440,7 @@ async function CF2luogu(problemToolbar) {
                 method: "GET",
                 url
             });
-            return response.status < 300 && !response.responseText.match(/出错了/g);//匹配 1xx 和 2xx
+            return response.status<300&&!response.responseText.match(/出错了/g);//匹配 1xx 和 2xx
         }, {
             maxRetries: 3,
             retryInterval: 1000
@@ -9539,41 +9509,6 @@ async function CF2vjudge(problemToolbar) {
             problemToolbar.updateText(vjudgeButton, i18next.t('state.netError', { ns: 'button' }));
             problemToolbar.disableButton(vjudgeButton);
         }
-    }
-}
-
-/**
- * 添加题面整体复制按钮
- * @param {ProblemPageLinkbar} problemToolbar
- */
-async function addProblemStatementCopyToolbarButton(problemToolbar) {
-    const problemStatement = $("#task-statement");
-    if (problemStatement.length === 0) return;
-
-    const icon = OJB_safeCreateJQElement('<i class="iconfont">&#xe608;</i>');
-    const copyButton = problemToolbar.addActionButton(
-        "problemStatementCopyButton",
-        "",
-        icon,
-        "18px"
-    );
-    problemToolbar.addClass(copyButton, "ojb_btn_popover top problem-toolbar-copy");
-    copyButton.element.attr(
-        "aria-label",
-        i18next.t('copy.normal', { ns: 'button' })
-    );
-    copyButton.element.setButtonPopover(
-        i18next.t('copy.normal', { ns: 'button' })
-    );
-
-    try {
-        await addButtonWithCopy(copyButton.element, problemStatement, "_toolbar", "this_level");
-    } catch (error) {
-        console.error("Failed to initialize problem toolbar copy button", error);
-        copyButton.element.prop("disabled", true);
-        copyButton.element.setButtonPopover(
-            i18next.t('copy.disabled', { ns: 'button' })
-        );
     }
 }
 
@@ -14395,7 +14330,6 @@ function initOnDOMReady() {
     // if (OJBetter.basic.selectElementPerfOpt) SelectElementPerfOpt(); // 下拉选择框性能优化
     if (OJBetter.typeOfPage.is_problem) {
         const problemPageLinkbar = new ProblemPageLinkbar(); // 创建题目页相关链接栏
-        addProblemStatementCopyToolbarButton(problemPageLinkbar);
         if (OJBetter.basic.showCF2vjudge) CF2vjudge(problemPageLinkbar); // 跳转到Vjudge按钮
         if (OJBetter.basic.showJumpToLuogu) CF2luogu(problemPageLinkbar); // 跳转到洛谷按钮
         if (OJBetter.clist.enabled.problem) showRatingByClist_problem(problemPageLinkbar); // problem页显示Rating
@@ -14575,9 +14509,9 @@ if (GM_getValue("openai_key") || GM_getValue("api2d_key")) {
     const config_changed = GM_getValue("config_changed_118"); // 设置一个迁移标志
     const updateSource = GM_getValue("updateSource");
     if (!config_changed && updateSource === 'greasyfork') {
-        GM_setValue("config_changed", true);
-        GM_setValue("updateSource", 'aliyunoss');
-        location.reload();
+      GM_setValue("config_changed", true);
+      GM_setValue("updateSource", 'aliyunoss');
+      location.reload();
     }
 }
 
